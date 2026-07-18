@@ -1,5 +1,64 @@
 # MyTrash_App
 
+MyTrash_App is a lightweight mobile marketplace and local waste-exchange app. It pairs a React Native (Expo) mobile client with a Node.js (Express) backend. The server provides REST APIs, file uploads, and Firebase integration for authentication and storage.
+
+Quick summary
+- Frontend: `mobile/` — React Native (Expo) app with screens for browsing, selling, chat, orders, and account management.
+- Backend: `server/` — Express server that exposes APIs and handles uploads; uses Firebase Admin for backend operations.
+
+Minimal run instructions
+
+Server
+1. Open a terminal and go to the server folder:
+
+```bash
+cd server
+```
+2. Install dependencies:
+
+```bash
+npm install
+```
+3. Provide credentials/config (create `.env` or set env vars). If the repo's Firebase JSON is used for local development, set:
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS=./mytrash-29376-firebase-adminsdk-1mpnm-bcc2249c40.json
+# (Windows PowerShell)
+$env:GOOGLE_APPLICATION_CREDENTIALS="./mytrash-29376-firebase-adminsdk-1mpnm-bcc2249c40.json"
+```
+4. Start the server:
+
+```bash
+node server.js
+# or
+npm start
+```
+
+Mobile (Expo)
+1. Open a terminal and go to the mobile folder:
+
+```bash
+cd mobile
+```
+2. Install dependencies:
+
+```bash
+npm install
+```
+3. Start Expo:
+
+```bash
+npx expo start
+```
+4. Open on a simulator or a physical device using the Expo app. If using a physical device, ensure the mobile app's API base URL in `mobile/config.js` points to your machine's LAN IP so it can reach the server.
+
+Notes
+- Do not commit secrets or production Firebase credentials. Remove or rotate the included JSON keys before publishing.
+- If the app cannot reach the server from a device, prefer using the machine's LAN IP instead of `localhost`.
+
+If you want, I can make this even shorter (one-paragraph) or add example `.env` variables. 
+# MyTrash_App
+
 Simple local project containing a React Native mobile app (`mobile/`) and an Express backend (`server/`).
 
 ## Structure
