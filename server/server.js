@@ -8,6 +8,7 @@ const path = require('path');
 const socketIo = require('socket.io');
 const http = require('http');
 const axios = require('axios');
+const dotenv = require('dotenv');
 const {
   Console
 } = require('console');
@@ -489,7 +490,7 @@ app.post('/api/updateuser', async (req, res) => {
 
 let defaultClient = SibApiV3Sdk.ApiClient.instance;
 let apiKey = defaultClient.authentications['api-key'];
-apiKey.apiKey = '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';
+apiKey.apiKey = PROCESS.env.API_KEY;
 
 
 app.post('/api/login', async (req, res) => {
