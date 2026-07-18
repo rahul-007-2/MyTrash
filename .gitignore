@@ -1,14 +1,4 @@
-# Ignore environment and credential files
-/server/.env
-/server/mytrash-29376-firebase-adminsdk-1mpnm-bcc2249c40.json
-/mobile/mytrash-29376-firebase-adminsdk-1mpnm-bcc2249c40.json
-/mobile/google-services.json
-
 # Node modules
-node_modules/
-
-# OS files
-.DS_Store# Node modules
 node_modules/
 */node_modules/
 
