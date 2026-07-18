@@ -9,6 +9,7 @@ const socketIo = require('socket.io');
 const http = require('http');
 const axios = require('axios');
 const dotenv = require('dotenv');
+dotenv.config();
 const {
   Console
 } = require('console');
@@ -25,11 +26,28 @@ const serverAPIURL = 'http://192.168.31.119:5000'
 
 const admin = require('firebase-admin');
 
-// Initialize Firebase Admin with your service account key
-const serviceAccount = require('./mytrash-29376-firebase-adminsdk-1mpnm-bcc2249c40.json');
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+// Initialize Firebase Admin with service account from env or local file.
+let serviceAccount;
+if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+  try {
+    serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+  } catch (e) {
+    console.error('Invalid JSON in GOOGLE_SERVICE_ACCOUNT_JSON');
+  }
+} else {
+  try {
+    serviceAccount = require('./mytrash-29376-firebase-adminsdk-1mpnm-bcc2249c40.json');
+  } catch (e) {
+    console.warn('Service account file not found; set GOOGLE_SERVICE_ACCOUNT_JSON or GOOGLE_APPLICATION_CREDENTIALS');
+  }
+}
+if (serviceAccount) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+} else {
+  admin.initializeApp();
+}
 
 
 // Middleware
@@ -39,7 +57,8 @@ app.use(cors({
 }));
 
 // MongoDB connection
-mongoose.connect('mongodb+srv://rahul2007rsrv_db_user:nHVrNCXcsUwnk4ge@cluster0.z6lxqas.mongodb.net/?appName=Cluster0', {
+const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://<user>:<password>@cluster0.z6lxqas.mongodb.net/?appName=Cluster0';
+mongoose.connect(mongoUri, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
@@ -490,7 +509,7 @@ app.post('/api/updateuser', async (req, res) => {
 
 let defaultClient = SibApiV3Sdk.ApiClient.instance;
 let apiKey = defaultClient.authentications['api-key'];
-apiKey.apiKey = PROCESS.env.API_KEY;
+apiKey.apiKey = process.env.API_KEY;
 
 
 app.post('/api/login', async (req, res) => {
