@@ -5,6 +5,8 @@ node_modules/
 # Build outputs
 .expo/
 .expo-shared/
+mobile/.expo/
+mobile/.expo-shared/
 dist/
 build/
 

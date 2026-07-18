@@ -20,9 +20,7 @@ import Settings from './settings';
 import picd from './ProductInfoCurrentlyDealing';
 import bands from './ProductInfoBANDS';
 import landingpage from './landingpage';
-import 'expo-dev-client';
 import * as Linking from 'expo-linking';
-import messaging from "@react-native-firebase/messaging";
 import * as SplashScreen from 'expo-splash-screen';
 
 SplashScreen.preventAutoHideAsync();

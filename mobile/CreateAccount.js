@@ -132,8 +132,8 @@ export default function CreateAccount() {
       try {
         // console.log('Sending request to server...');
         const response = await axios.post(`${serverAPIURL}/api/register`, {     //change ip
-          name, number, state, houseNumber, city, pincode, dob, email, password, latitude: location.latitude, 
-          longitude: location.longitude, profilepic
+          name, number, state, houseNumber, city, pincode, dob, email, password, latitude: location?.latitude ?? null, 
+          longitude: location?.longitude ?? null, profilepic
         });
         // console.log('Response received:', response.data);
   
@@ -172,12 +172,11 @@ export default function CreateAccount() {
           <Text style={styles.title}>Create Account</Text>
           <Text style={styles.sub}>Please fill in your details</Text>
 
-          <TouchableOpacity onPress={() => navigation.navigate("LoginPage")}>
-          <Text style={styles.signupText}>Already have an account?
-          <Text style={styles.forgotPasswordText}>  Sign in</Text>
-
-        </Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('LoginPage')} hitSlop={8}>
+            <Text style={styles.signupText}>Already have an account?
+              <Text style={styles.forgotPasswordText}>  Sign in</Text>
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <View
@@ -448,20 +447,22 @@ export default function CreateAccount() {
 
         <View style={{ flex: 0.5 }}>
           <TouchableOpacity
-        onPress={submit}
-        style={{
-          backgroundColor: 'rgb(30,30,200)', // Pleasant bright light blue color
-          padding: 10,
-          borderRadius: 5,
-          alignItems: 'center',
-          width: '100%',
-          alignSelf: 'center',
-          marginBottom:30,
-          marginTop:20
-        }}
-      >
-        <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>SIGN UP</Text>
-      </TouchableOpacity>
+            onPress={submit}
+            activeOpacity={0.8}
+            hitSlop={8}
+            style={{
+              backgroundColor: 'rgb(30,30,200)', // Pleasant bright light blue color
+              padding: 10,
+              borderRadius: 5,
+              alignItems: 'center',
+              width: '100%',
+              alignSelf: 'center',
+              marginBottom:30,
+              marginTop:20
+            }}
+          >
+            <Text style={{ color: 'white', fontSize: 16, fontWeight: 'bold' }}>SIGN UP</Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAwareScrollView>
     </SafeAreaView>

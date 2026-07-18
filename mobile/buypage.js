@@ -203,24 +203,24 @@ const categoryData = [
   
   
   const checkSearch = () => {
-    isanythingchecked = false;
+    let isanythingchecked = false;
     for (let index = 0; index < checkBoxData.length; index++) {
-        const element = checkBoxData[index];
-        if(element.checked){
-            isanythingchecked = true;
-        }
+      const element = checkBoxData[index];
+      if (element.checked) {
+        isanythingchecked = true;
+      }
     }
     for (let index = 0; index < checkBoxData2.length; index++) {
-        const element = checkBoxData2[index];
-        if(element.checked){
-            isanythingchecked = true;
-        }
-    }
-    if (!(searchQuery.trim() === '' || searchQuery == null)){
+      const element = checkBoxData2[index];
+      if (element.checked) {
         isanythingchecked = true;
+      }
+    }
+    if (!(searchQuery.trim() === '' || searchQuery == null)) {
+      isanythingchecked = true;
     }
     return isanythingchecked;
-  }
+  };
 
 
 

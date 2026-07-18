@@ -34,21 +34,26 @@ const FeedbackPage = ({navigation}) => {
   };
 
   const sendfeedback = async () => {
-    const email = await AsyncStorage.getItem('email');
-    const response = await axios.post(`${serverAPIURL}/api/feedback`, {email : email, content : feedback}).then(response2 => {
-        Alert.alert(
-            "Feedback Alert", // Alert title
-            `${response2.data.message}`, // Alert message
-            [
-              {
-                text: "OK",
-                onPress: () => console.log("OK Pressed"),
-              }
-            ],
-            { cancelable: true }
-        );
-    });
-  }
+    if (!feedback.trim()) {
+      Alert.alert('Please enter feedback before submitting.');
+      return;
+    }
+
+    try {
+      const email = await AsyncStorage.getItem('email');
+      if (!email) {
+        Alert.alert('Please log in again before sending feedback.');
+        return;
+      }
+
+      const response = await axios.post(`${serverAPIURL}/api/feedback`, { email, content: feedback.trim() });
+      Alert.alert('Feedback Alert', response?.data?.message || 'Feedback sent successfully.');
+      setFeedback('');
+    } catch (error) {
+      console.error('Feedback submit error:', error);
+      Alert.alert('Feedback failed', error?.response?.data?.message || error?.message || 'Please try again later.');
+    }
+  };
 
   return (
     <View style={styles.container}>

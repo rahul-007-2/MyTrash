@@ -9,30 +9,26 @@ import settingsicon from './assets/settingsicon.png';
 import axios from 'axios';
 import React, { useEffect, useState,useRef, useCallback   } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Device from 'expo-device';
-import * as Notifications from 'expo-notifications';
-import Constants from 'expo-constants';
 import cart from "./assets/cart.png";
 import { useIsFocused , useFocusEffect} from '@react-navigation/native';
 import logo from "./assets/logo.png"
 import { serverAPIURL, Ad } from './config';
-import messaging from "@react-native-firebase/messaging";
-import { initializeApp } from '@react-native-firebase/app';
 import * as Linking from 'expo-linking';
-
-// Your Firebase configuration object
-const firebaseConfig = {
-  // Your config here
-};
-
-initializeApp(firebaseConfig);
-
-
+import {
+  registerForPushNotifications,
+  subscribeToNotificationListeners,
+  getFirebaseMessaging,
+} from './notifications';
 
 NavigationBar.setBackgroundColorAsync("#283950");
 
 export const deletetoken = async (tokenarg) => {
-  await messaging().deleteToken(tokenarg);
+  const messagingInstance = getFirebaseMessaging();
+  if (!messagingInstance) {
+    return;
+  }
+
+  await messagingInstance.deleteToken(tokenarg);
 }
 
 export default function App({ navigation }) {
@@ -49,15 +45,17 @@ export default function App({ navigation }) {
     const fetchdata = async () => {
 
       if (Platform.OS === 'android') {
-                Notifications.setNotificationChannelAsync('default', {
-          name: 'default',
-          importance: Notifications.AndroidImportance.MAX,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#FF231F7C',
-        });
-
-
-        
+        try {
+          const { default: Notifications } = await import('expo-notifications');
+          await Notifications.setNotificationChannelAsync('default', {
+            name: 'default',
+            importance: Notifications.AndroidImportance.MAX,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#FF231F7C',
+          });
+        } catch (error) {
+          console.warn('Notification channel setup skipped:', error.message);
+        }
       }
 
       try {
@@ -73,32 +71,9 @@ export default function App({ navigation }) {
         }
 
         if (!storedToken) {
-          // No token found, generate a new one
-          if (Device.isDevice) {
-
-            let token;
-            const authStatus = await messaging().requestPermission();
-            const enabled =
-              authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-              authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-        
-            if (enabled) {
-              token = await messaging().getToken();
-              console.log('FCM Token:', token);
-            }
-             else {
-              alert('Must use physical device for Push Notifications');
-            }
-
-            console.log(token);
-
-            // Send the token to the server for registration
-            await axios.post(`${serverAPIURL}/register-token`, { token, email });
-
-            // Store the generated token in AsyncStorage
+          const token = await registerForPushNotifications(email, serverAPIURL, axios);
+          if (token) {
             await AsyncStorage.setItem('token', token);
-          } else {
-            throw new Error('Must use physical device for push notifications');
           }
         }
 
@@ -117,27 +92,17 @@ export default function App({ navigation }) {
     fetchdata();
 
 
-    const unsubscribe = messaging().onMessage(async remoteMessage => {
-      console.log('A new FCM message arrived!', JSON.stringify(remoteMessage));
-      // Handle the message here
+    const unsubscribe = subscribeToNotificationListeners({
+      onMessage: (remoteMessage) => {
+        console.log('A new FCM message arrived!', JSON.stringify(remoteMessage));
+      },
+      onBackgroundMessage: (remoteMessage) => {
+        console.log('Message handled in the background!', remoteMessage);
+      },
+      onOpened: (remoteMessage) => {
+        console.log('Notification caused app to open from background state:', remoteMessage);
+      },
     });
-
-    messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-      console.log('Message handled in the background!', remoteMessage);
-      const data = remoteMessage.data;
-      // navigation.navigate("chat",{item : data.item, isUserSeller:data.isUserSeller , buyer_email:data.buyer_email, noti : true});
-      // navigation.navigate("Settings");
-    });
-
-        // Handle notification click
-        messaging().onNotificationOpenedApp(remoteMessage => {
-          console.log('Notification caused app to open from background state:', remoteMessage);
-          // Navigate to appropriate screen based on the notification data
-          const data = remoteMessage.data;
-          //navigation.navigate("chat",{item : data.item, isUserSeller:data.isUserSeller , buyer_email:data.buyer_email, noti : true});
-          // navigation.navigate("Settings");
-        });
-
 
     return unsubscribe;
   }, []);
@@ -167,13 +132,17 @@ export default function App({ navigation }) {
 
     const fetchData = async () => {
       if (Platform.OS === 'android') {
-
-        Notifications.setNotificationChannelAsync('default', {
-          name: 'default',
-          importance: Notifications.AndroidImportance.MAX,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: '#FF231F7C',
-        });
+        try {
+          const { default: Notifications } = await import('expo-notifications');
+          await Notifications.setNotificationChannelAsync('default', {
+            name: 'default',
+            importance: Notifications.AndroidImportance.MAX,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#FF231F7C',
+          });
+        } catch (error) {
+          console.warn('Notification channel setup skipped:', error.message);
+        }
       }
 
       try {
@@ -188,28 +157,9 @@ export default function App({ navigation }) {
         }
 
         if (!storedToken) {
-          // No token found, generate a new one
-          if (Device.isDevice) {
-            let token;
-            const authStatus = await messaging().requestPermission();
-            const enabled =
-              authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-              authStatus === messaging.AuthorizationStatus.PROVISIONAL;
-        
-            if (enabled) {
-              token = await messaging().getToken();
-              console.log('FCM Token:', token);
-            }
-             else {
-              alert('Must use physical device for Push Notifications');
-            }
-
-            await axios.post(`${serverAPIURL}/register-token`, { token, email });
-
-            // Store the generated token in AsyncStorage
+          const token = await registerForPushNotifications(email, serverAPIURL, axios);
+          if (token) {
             await AsyncStorage.setItem('token', token);
-          } else {
-            throw new Error('Must use physical device for push notifications');
           }
         }
 
@@ -229,29 +179,17 @@ export default function App({ navigation }) {
       fetchData(); // Refetch data or update state when screen is focused
     }
 
-    const unsubscribe = messaging().onMessage(async remoteMessage => {
-      console.log('A new FCM message arrived!', JSON.stringify(remoteMessage));
-      // Handle the message here
+    const unsubscribe = subscribeToNotificationListeners({
+      onMessage: (remoteMessage) => {
+        console.log('A new FCM message arrived!', JSON.stringify(remoteMessage));
+      },
+      onBackgroundMessage: (remoteMessage) => {
+        console.log('Message handled in the background!', remoteMessage);
+      },
+      onOpened: (remoteMessage) => {
+        console.log('Notification caused app to open from background state:', remoteMessage);
+      },
     });
-
-
-
-
-    messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-      console.log('Message handled in the background!', remoteMessage);
-      const data = remoteMessage.data;
-      // navigation.navigate("chat",{item : data.item, isUserSeller:data.isUserSeller , buyer_email:data.buyer_email, noti : true});
-      // navigation.navigate("Settings");
-    });
-
-        // Handle notification click
-        messaging().onNotificationOpenedApp(remoteMessage => {
-          console.log('Notification caused app to open from background state:', remoteMessage);
-          // Navigate to appropriate screen based on the notification data
-          const data = remoteMessage.data;
-          //navigation.navigate("chat",{item : data.item, isUserSeller:data.isUserSeller , buyer_email:data.buyer_email, noti : true});
-          // navigation.navigate("Settings");
-        });
 
     return unsubscribe;
 
@@ -276,10 +214,10 @@ export default function App({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+      const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
 
       return () => {
-        BackHandler.removeEventListener('hardwareBackPress', handleBackPress);
+        subscription?.remove?.();
       };
     }, [handleBackPress])
   );

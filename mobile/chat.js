@@ -137,11 +137,11 @@ export default function ChatScreen({ route, navigation }) {
   // Add the back button event listener when the screen is focused
   useFocusEffect(
     useCallback(() => {
-      BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+      const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
 
       // Clean up the event listener when the screen is unfocused
       return () => {
-        BackHandler.removeEventListener('hardwareBackPress', handleBackPress);
+        subscription?.remove?.();
       };
     }, [handleBackPress])
   );

@@ -54,23 +54,25 @@ const HelpAndSupportPage = ({navigation}) => {
   };
 
   const handleSubmitQuery = async () => {
-    // Handle query submission logic here
-    const email = await AsyncStorage.getItem('email');
-    const response = await axios.post(`${serverAPIURL}/api/helpandsupport`, {email : email, content : query}).then(response2 => {
-        Alert.alert(
-            "Query Alert", // Alert title
-            `${response2.data.message}`, // Alert message
-            [
-              {
-                text: "OK",
-                onPress: () => console.log("OK Pressed"),
-              }
-            ],
-            { cancelable: true }
-        );
-        console.log('Query:', query);
-        setQuery('');
-    });
+    if (!query.trim()) {
+      Alert.alert('Please enter a query before submitting.');
+      return;
+    }
+
+    try {
+      const email = await AsyncStorage.getItem('email');
+      if (!email) {
+        Alert.alert('Please log in again before submitting a query.');
+        return;
+      }
+
+      const response = await axios.post(`${serverAPIURL}/api/helpandsupport`, { email, content: query.trim() });
+      Alert.alert('Query Alert', response?.data?.message || 'Query sent successfully.');
+      setQuery('');
+    } catch (error) {
+      console.error('Help/support submit error:', error);
+      Alert.alert('Query failed', error?.response?.data?.message || error?.message || 'Please try again later.');
+    }
   };
 
   return (

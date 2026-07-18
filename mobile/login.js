@@ -74,7 +74,6 @@ export default function LoginScreen({navigation}) {
           setPasswordError('');
           setEmailError('');
           navigation.navigate('HomePage');
-          n
         } else if (res.data.message === 'Incorrect Username or Password') {
           Keyboard.dismiss();
           Toast.show({
@@ -131,11 +130,11 @@ export default function LoginScreen({navigation}) {
   // Add the back button event listener when the screen is focused
   useFocusEffect(
     useCallback(() => {
-      BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+      const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
 
       // Clean up the event listener when the screen is unfocused
       return () => {
-        BackHandler.removeEventListener('hardwareBackPress', handleBackPress);
+        subscription?.remove?.();
       };
     }, [handleBackPress])
   );
@@ -151,7 +150,6 @@ export default function LoginScreen({navigation}) {
       keyboardShouldPersistTaps='handled'
     >
       <Toast
-        ref={(ref) => Toast.setRef(ref)}
         config={{
           customToast: (props) => <CustomToast {...props} />
         }}
