@@ -2,6 +2,7 @@
   "expo": {
     "name": "MyTrash",
     "slug": "MyTrash",
+    "owner": "rahul2007",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/applogo.png",
@@ -21,6 +22,9 @@
             "usesCleartextTraffic": true
           }
         }
+      ],
+      [
+        "@react-native-firebase/app"
       ]
     ],
     "notification": {
@@ -40,16 +44,16 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
-    "extra": {
-      "eas": {
-        "projectId": "845fc6b8-d186-41bf-8245-19b21b50794b"
-      }
-    },
     "runtimeVersion": {
       "policy": "appVersion"
     },
     "updates": {
       "url": "https://u.expo.dev/845fc6b8-d186-41bf-8245-19b21b50794b"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "6aa5af8a-1eb4-4445-af66-05e44d549d3a"
+      }
     }
   }
 }

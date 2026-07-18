@@ -38,7 +38,7 @@ app.use(cors({
 }));
 
 // MongoDB connection
-mongoose.connect('mongodb://localhost:27017/mytrashdb', {
+mongoose.connect('mongodb+srv://rahul2007rsrv_db_user:nHVrNCXcsUwnk4ge@cluster0.z6lxqas.mongodb.net/?appName=Cluster0', {
     useNewUrlParser: true,
     useUnifiedTopology: true,
   })
