@@ -8,6 +8,7 @@ const path = require('path');
 const socketIo = require('socket.io');
 const http = require('http');
 const axios = require('axios');
+const fs = require("fs");
 require("dotenv").config();
 const {
   Console
@@ -40,8 +41,6 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
-
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
@@ -302,10 +301,16 @@ app.post("/api/upload", upload.array("images"), async (req, res) => {
   try {
     const uploadPromises = req.files.map(file =>
       cloudinary.uploader.upload(file.path, { folder: "items" })
+        .then(result => {
+          // delete temp file after upload
+          fs.unlink(file.path, err => {
+            if (err) console.error("Failed to delete temp file:", err);
+          });
+          return result.secure_url;
+        })
     );
 
-    const results = await Promise.all(uploadPromises);
-    const imageUrls = results.map(r => r.secure_url);
+    const imageUrls = await Promise.all(uploadPromises);
 
     const newItem = new Item({
       name,
@@ -326,6 +331,7 @@ app.post("/api/upload", upload.array("images"), async (req, res) => {
   }
 });
 
+
 app.post("/api/profilepic", upload.single("image"), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
 
@@ -334,6 +340,11 @@ app.post("/api/profilepic", upload.single("image"), async (req, res) => {
   try {
     const result = await cloudinary.uploader.upload(req.file.path, { folder: "profilepics" });
     const imageUrl = result.secure_url;
+
+    // delete temp file after upload
+    fs.unlink(req.file.path, err => {
+      if (err) console.error("Failed to delete temp file:", err);
+    });
 
     const updatedUser = await User.findOneAndUpdate(
       { email },
@@ -346,8 +357,6 @@ app.post("/api/profilepic", upload.single("image"), async (req, res) => {
     res.status(500).json({ message: "Error updating profile picture", error });
   }
 });
-
-
 
 app.post('/api/updateuser', async (req, res) => {
   const {
