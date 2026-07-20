@@ -33,6 +33,26 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
+const cloudinary = require("cloudinary").v2;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "uploads", // Cloudinary folder name
+    allowed_formats: ["jpg", "png", "jpeg"]
+  }
+});
+
+const upload = multer({ storage });
+
 app.get("/",(req,res)=>{
   res.send("Server is running")
 })
@@ -184,31 +204,21 @@ const tokenSchema = new mongoose.Schema({
 const Token = mongoose.model('Token', tokenSchema);
 
 
-/////////////////////////////////////////////////////////////////////
+//Previously used local storage:
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/'); // Destination folder for storing uploads
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}${file.originalname}`); // Unique filename
-  },
-});
-
-
-/////////////////////////////////////////////////////////////////////
-
-
-// Initialize multer upload with the configured storage
-const upload = multer({
-  storage
-});
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, 'uploads/'); // Destination folder for storing uploads
+//   },
+//   filename: (req, file, cb) => {
+//     cb(null, `${Date.now()}${file.originalname}`); // Unique filename
+//   },
+// });
 
 // Middleware to parse JSON bodies
 app.use(express.json());
 
-// Serve the uploaded files statically
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 
 
 function haversineDistance(lat1, lon1, lat2, lon2) {
@@ -286,7 +296,7 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-app.post('/api/upload', upload.array('images'), async (req, res) => {
+app.post("/api/upload", upload.array("images"), async (req, res) => {
   const {
     name,
     description,
@@ -297,64 +307,62 @@ app.post('/api/upload', upload.array('images'), async (req, res) => {
     phone,
     email
   } = req.body;
-  const imageUri = req.files.map(file => `/uploads/${file.filename}`);
+
+  // Cloudinary returns URLs in req.files[].path
+  const imageUri = req.files.map(file => file.path);
 
   const newItem = new Item({
-    name: name,
-    description: description,
-    category: category,
-    imageUri: imageUri,
+    name,
+    description,
+    category,
+    imageUri,
     latitude: Number(latitude),
     longitude: Number(longitude),
-    sellername: sellername,
-    phone: phone,
-    email: email
+    sellername,
+    phone,
+    email
   });
-
-  // console.log(newItem);
 
   try {
     await newItem.save();
     res.status(200).json({
-      message: 'Item uploaded successfully'
+      message: "Item uploaded successfully",
+      imageUri
     });
   } catch (error) {
     res.status(500).json({
-      message: 'Error uploading item',
+      message: "Error uploading item",
       error
     });
   }
 });
 
-app.post('/api/profilepic', upload.single('image'), async (req, res) => {
-
+app.post("/api/profilepic", upload.single("image"), async (req, res) => {
   if (!req.file) {
-    return res.status(400).json({
-      error: 'No file uploaded'
-    });
+    return res.status(400).json({ error: "No file uploaded" });
   }
-  const {
-    email
-  } = req.body;
-  const imageUrl = `/uploads/${req.file.filename}`;
+
+  const { email } = req.body;
+  const imageUrl = req.file.path; // Cloudinary URL
 
   try {
-    const updated_profilepic = await User.findOneAndUpdate({
-      email: email
-    }, {
-      profilepic: imageUrl
-    }, {
-      new: true
+    const updated_profilepic = await User.findOneAndUpdate(
+      { email },
+      { profilepic: imageUrl },
+      { new: true }
+    );
+
+    res.status(200).json({
+      message: "Profile picture updated",
+      url: imageUrl,
+      user: updated_profilepic
     });
   } catch (error) {
     console.log(error);
-  } finally {
-    res.status(200).json({
-      message: 'updated',
-      url: imageUrl
-    });
+    res.status(500).json({ message: "Error updating profile picture" });
   }
 });
+
 
 app.post('/api/updateuser', async (req, res) => {
   const {
