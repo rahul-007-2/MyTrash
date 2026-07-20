@@ -1,132 +1,262 @@
-# MyTrash_App
+# 📱 MyTrash_App
 
-MyTrash_App is a lightweight mobile marketplace and local waste-exchange app. It pairs a React Native (Expo) mobile client with a Node.js (Express) backend. The server provides REST APIs, file uploads, and Firebase integration for authentication and storage.
+**MyTrash_App** is a lightweight mobile marketplace and local waste-exchange platform designed to connect individuals with scrap vendors and other users interested in buying or selling recyclable materials.
 
-Quick summary
-- Frontend: `mobile/` — React Native (Expo) app with screens for browsing, selling, chat, orders, and account management.
-- Backend: `server/` — Express server that exposes APIs and handles uploads; uses Firebase Admin for backend operations.
+Built using **React Native with Expo** for the mobile application and **Node.js with Express** for the backend, the project demonstrates full-stack mobile application development with authentication, marketplace functionality, real-time communication, order management, and file uploads.
 
-Minimal run instructions
+---
 
-Server
-1. Open a terminal and go to the server folder:
+## 🚀 Tech Stack
+
+### Frontend — `mobile/`
+
+* React Native
+* Expo
+* JavaScript
+* Cross-platform mobile development
+* REST API integration
+
+### Backend — `server/`
+
+* Node.js
+* Express.js
+* MongoDB
+* Firebase Admin SDK
+* Socket.IO
+* REST APIs
+* File upload support
+
+---
+
+## ✨ Features
+
+* 🔑 **User Authentication** — Secure login and account creation
+* 🛒 **Scrap Marketplace** — Browse and list recyclable materials and scrap items
+* 💰 **Buy & Sell** — Connect buyers and sellers through the platform
+* 💬 **Real-Time Chat** — Communication between buyers and sellers using Socket.IO
+* 📦 **Order Management** — Manage and track marketplace transactions
+* 🖼️ **Product Images** — Upload and display images for product listings
+* 👤 **User Profiles** — Manage personal account and profile information
+* 📱 **Cross-Platform Support** — Built with Expo for Android, iOS, and Web compatibility
+
+---
+
+## 📂 Project Structure
+
+```text
+MyTrash_App/
+│
+├── mobile/                     # React Native (Expo) client
+│   ├── App.js
+│   ├── HomePage.js
+│   ├── LoginPage.js
+│   ├── CreateAccount.js
+│   ├── ProductInfo.js
+│   ├── ChatPage.js
+│   ├── MyAccount.js
+│   ├── BuyPage.js
+│   ├── SellPage.js
+│   └── ...
+│
+└── server/                     # Express backend
+    ├── server.js
+    ├── routes/
+    ├── models/
+    ├── uploads/
+    └── ...
+```
+
+---
+
+## ⚡ Getting Started
+
+### Prerequisites
+
+Before running the project, ensure you have the following installed:
+
+* Node.js
+* npm
+* Expo CLI / Expo Go
+* MongoDB or MongoDB Atlas
+* Firebase project configuration
+
+---
+
+### Backend Setup
+
+Navigate to the backend directory:
 
 ```bash
 cd server
 ```
-2. Install dependencies:
+
+Install dependencies:
 
 ```bash
 npm install
 ```
-3. Provide credentials/config (create `.env` or set env vars). If the repo's Firebase JSON is used for local development, set:
 
-```bash
-export GOOGLE_APPLICATION_CREDENTIALS=./mytrash-29376-firebase-adminsdk-1mpnm-bcc2249c40.json
-# (Windows PowerShell)
-$env:GOOGLE_APPLICATION_CREDENTIALS="./mytrash-29376-firebase-adminsdk-1mpnm-bcc2249c40.json"
+Create a `.env` file and configure the required environment variables.
+
+Example:
+
+```env
+MONGODB_URI=your_mongodb_connection_string
+API_KEY=your_api_key
+GOOGLE_APPLICATION_CREDENTIALS=path_to_firebase_service_account_json
 ```
-4. Start the server:
+
+Start the backend server:
 
 ```bash
 node server.js
-# or
+```
+
+Or, if configured:
+
+```bash
 npm start
 ```
 
-Mobile (Expo)
-1. Open a terminal and go to the mobile folder:
+---
+
+### Frontend Setup
+
+Navigate to the mobile application directory:
 
 ```bash
 cd mobile
 ```
-2. Install dependencies:
+
+Install dependencies:
 
 ```bash
 npm install
 ```
-3. Start Expo:
+
+Start the Expo development server:
 
 ```bash
 npx expo start
 ```
-4. Open on a simulator or a physical device using the Expo app. If using a physical device, ensure the mobile app's API base URL in `mobile/config.js` points to your machine's LAN IP so it can reach the server.
 
-Notes
-- Do not commit secrets or production Firebase credentials. Remove or rotate the included JSON keys before publishing.
-- If the app cannot reach the server from a device, prefer using the machine's LAN IP instead of `localhost`.
+You can run the application using:
 
-If you want, I can make this even shorter (one-paragraph) or add example `.env` variables. 
-# MyTrash_App
+* Expo Go on a physical device
+* Android Emulator
+* iOS Simulator
+* Web browser
 
-Simple local project containing a React Native mobile app (`mobile/`) and an Express backend (`server/`).
+> **Note:** When testing on a physical device, update the API configuration with your development machine's LAN IP address instead of using `localhost`.
 
-## Structure
-- `mobile/` — React Native (Expo) client
-- `server/` — Express backend, MongoDB, Firebase Admin integration
+---
 
-## Quick start
+## 🔌 API Integration
 
-1. Create a local server env file
+The React Native frontend communicates with the Express backend through REST APIs.
 
-```bash
-cd server
-cp .env.example .env
-# Open server/.env and fill real secrets (do NOT commit .env)
+The backend handles operations such as:
+
+* User registration and authentication
+* User profile management
+* Product listing management
+* Product image uploads
+* Marketplace operations
+* Order management
+* Chat-related services
+
+Real-time communication between users is supported using **Socket.IO**.
+
+---
+
+## 🖼️ Screenshots
+
+Add screenshots of the application inside a `screenshots/` directory in the repository.
+
+Example:
+
+```text
+screenshots/
+├── login.png
+├── marketplace.png
+├── chat.png
+└── orders.png
 ```
 
-Recommended values to set in `server/.env`:
-- `API_KEY` — Sendinblue API key
-- `MONGODB_URI` — MongoDB connection string
-- `GOOGLE_APPLICATION_CREDENTIALS` — path to Firebase service account JSON, or set `GOOGLE_SERVICE_ACCOUNT_JSON` with the full JSON if needed
+Then display them in the README using:
 
-2. Install dependencies and run server
+```markdown
+### Login
 
-```bash
-cd server
-npm install
-node server.js
-# or use your process manager: PORT=5000 node server.js
+![Login Screen](screenshots/login.png)
+
+### Marketplace
+
+![Marketplace](screenshots/marketplace.png)
+
+### Chat
+
+![Chat](screenshots/chat.png)
+
+### Orders
+
+![Orders](screenshots/orders.png)
 ```
 
-3. Run the mobile app (Expo)
+---
 
-```bash
-cd mobile
-npm install
-npm run start   # or `expo start` if using Expo
+## 🔒 Security
+
+* Never commit `.env` files to the repository.
+* Never expose Firebase service account credentials.
+* Keep API keys and database credentials outside the source code.
+* Add sensitive configuration files to `.gitignore`.
+* Rotate or revoke credentials immediately if they are accidentally exposed.
+* Use environment variables for production deployments.
+
+Example `.gitignore` entries:
+
+```gitignore
+node_modules/
+.env
+*.json
+uploads/
+.expo/
 ```
 
-## Secrets and safety
-- The repository previously contained committed secrets (Firebase service account JSON, Sendinblue API key, Google API key). Those were redacted from tracked files and replaced with placeholders.
-- You must rotate/revoke those exposed credentials immediately:
-  - Revoke the Firebase service account key in Google Cloud Console.
-  - Regenerate the Sendinblue API key.
-  - Rotate MongoDB user/password.
+> Ensure that required project JSON files such as `package.json` are **not** accidentally ignored.
 
-## Purging history (optional, required to fully remove secrets from GitHub)
-To remove sensitive files from Git history, run one of these from a fresh clone and then force-push:
+If sensitive credentials have previously been committed, remove them from the Git history and rotate the exposed credentials.
 
-Using `git-filter-repo` (recommended):
+---
 
-```bash
-git clone --mirror https://github.com/your/repo.git
-cd repo.git
-git filter-repo --invert-paths --path server/mytrash-29376-firebase-adminsdk-1mpnm-bcc2249c40.json --path mobile/mytrash-29376-firebase-adminsdk-1mpnm-bcc2249c40.json --path mobile/google-services.json --path server/.env
-git push --force
-```
+## 🛠️ Development Notes
 
-Using BFG:
+* Use your machine's **LAN IP address** instead of `localhost` when connecting a physical mobile device to the backend during development.
+* Ensure the mobile device and development machine are connected to the same network when using a local backend.
+* Environment-based configuration is recommended for managing development and production API URLs.
+* A production process manager such as PM2 or containerization with Docker can be used when deploying the backend.
 
-```bash
-git clone --mirror https://github.com/your/repo.git
-java -jar bfg.jar --delete-files '{server/.env,server/mytrash-29376-firebase-adminsdk-1mpnm-bcc2249c40.json,mobile/mytrash-29376-firebase-adminsdk-1mpnm-bcc2249c40.json,mobile/google-services.json}' repo.git
-cd repo.git
-git reflog expire --expire=now --all
-git gc --prune=now --aggressive
-git push --force
-```
+---
 
-## If you want me to proceed
-- I can run the history purge and force-push for you (I will need confirmation).  This rewrites history and requires all collaborators to re-clone.
-- Or I can provide step-by-step rotation commands for each provider.
+## 🌟 Project Highlights
+
+* Full-stack mobile application development
+* React Native and Expo cross-platform development
+* Node.js and Express.js backend architecture
+* MongoDB database integration
+* RESTful API development
+* Firebase integration
+* Real-time communication with Socket.IO
+* Image and file upload functionality
+* Marketplace and order management workflows
+* Separation of mobile frontend and backend services
+* Environment-based configuration for improved security
+
+---
+
+## 📄 License
+
+This project was developed for **educational and portfolio purposes**.
+
+Any credentials, API keys, or service account files used during development should be kept private and must not be committed to the repository.
