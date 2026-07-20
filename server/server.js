@@ -21,7 +21,7 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const server = http.createServer(app);
 const io = socketIo(server);
-const serverAPIURL = 'http://192.168.31.119:5000'
+const serverAPIURL = 'http://192.168.1.37:5000'
 
 const admin = require('firebase-admin');
 
@@ -293,7 +293,7 @@ app.post('/api/upload', upload.array('images'), async (req, res) => {
     phone,
     email
   } = req.body;
-  const imageUri = req.files.map(file => file.path);
+  const imageUri = req.files.map(file => `/uploads/${file.filename}`);
 
   const newItem = new Item({
     name: name,

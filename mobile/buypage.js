@@ -484,7 +484,7 @@ const categoryData = [
                   info={item.description}
                   sellerName={item.sellername}
                   distance={radius[searchedItems.indexOf(item)]}
-                  imageuri={{ uri: `${serverAPIURL}/${item.imageUri[0]}` }}
+                  imageuri={{ uri: `${serverAPIURL}${item.imageUri[0]}` }}
                   isseller={emailinmobile === item.email}
                   onpress={
                     (issellbool) => {
