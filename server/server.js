@@ -33,6 +33,9 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
 
+app.get("/",(req,res)=>{
+  res.send("Server is running")
+})
 
 // Middleware
 app.use(bodyParser.json());
