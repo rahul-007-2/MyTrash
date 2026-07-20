@@ -42,14 +42,6 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: "uploads", // Cloudinary folder name
-    allowed_formats: ["jpg", "png", "jpeg"]
-  }
-});
-
 const upload = multer({ dest:"uploads/" });
 
 app.get("/",(req,res)=>{
