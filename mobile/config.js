@@ -1,6 +1,6 @@
 // config.js
 // import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
-export const serverAPIURL = 'http://192.168.1.37:5000';
+export const serverAPIURL = 'https://mytrash.onrender.com';
 // export const adUnitId = __DEV__ ? TestIds.BANNER : 'ca-app-pub-7889023293007161/9728035685';
 import {View} from 'react-native';
 
