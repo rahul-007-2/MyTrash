@@ -8,7 +8,7 @@ const path = require('path');
 const socketIo = require('socket.io');
 const http = require('http');
 const axios = require('axios');
-const dotenv = require('dotenv');
+require("dotenv").config();
 const {
   Console
 } = require('console');
@@ -26,7 +26,9 @@ const serverAPIURL = 'http://192.168.1.37:5000'
 const admin = require('firebase-admin');
 
 // Initialize Firebase Admin with your service account key
-const serviceAccount = require('./mytrash-29376-firebase-adminsdk-1mpnm-bcc2249c40.json');
+const serviceAccount = JSON.parse(
+  process.env.FIREBASE_SERVICE_ACCOUNT
+);
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
@@ -39,12 +41,11 @@ app.use(cors({
 }));
 
 // MongoDB connection
-mongoose.connect('mongodb+srv://rahul2007rsrv_db_user:nHVrNCXcsUwnk4ge@cluster0.z6lxqas.mongodb.net/?appName=Cluster0', {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-  })
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.log(err));
+
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch(err => console.error(err));
+
 
 // User Schema
 const UserSchema = new mongoose.Schema({
