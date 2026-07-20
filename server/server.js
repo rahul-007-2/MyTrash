@@ -21,14 +21,14 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const server = http.createServer(app);
 const io = socketIo(server);
-const serverAPIURL = 'http://192.168.1.37:5000'
+const serverAPIURL = 'https://mytrash.onrender.com'
 
 const admin = require('firebase-admin');
 
 // Initialize Firebase Admin with your service account key
 const serviceAccount = JSON.parse(
   process.env.FIREBASE_SERVICE_ACCOUNT
-);
+);  
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
 });
