@@ -358,13 +358,8 @@ const MyAccount = ({ navigation }) => {
         <View style={styles.profileContainer}>
           <TouchableOpacity onPress={pickImage}>
             <View>
-              {profileImage ? (
-                <Image source={uri} style={styles.profileImage} />
-              ) : (
-                <View style={styles.profilePlaceholder}>
-                  <Image source={uri} style={styles.profileImagePlaceholder} />
-                </View>
-              )}
+              <Image source={uri} style={styles.profileImage} />
+
               <View style={styles.editIndicator}>
                 <Image
                   source={require("./assets/edit.png")}

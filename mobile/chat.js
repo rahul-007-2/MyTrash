@@ -53,119 +53,134 @@ export default function ChatScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [profilepic, setprofilepic] = useState("");
 
-  const socketRef = useRef(null);
+const socketRef = useRef(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      // console.log('Fetching');
+useEffect(() => {
+  let isActive = true;
+  let roomId = "";
+
+  const fetchData = async () => {
+    try {
+      const em = await AsyncStorage.getItem("email");
+
+      if (!em || !isActive) {
+        return;
+      }
+
+      setemailinmobile(em);
+
+      const otherUserEmail =
+        em === item.email ? buyer_email : item.email;
+
+      const userResponse = await axios.post(
+        `${serverAPIURL}/api/getuser`,
+        {
+          email: otherUserEmail,
+        },
+      );
+
+      if (!isActive) {
+        return;
+      }
+
+      setusername(userResponse.data.name);
+
+      setprofilepic(
+        userResponse.data.profilepic
+          ? { uri: userResponse.data.profilepic }
+          : profile,
+      );
+
+      const resolvedBuyerEmail = isUserSeller
+        ? buyer_email
+        : em;
+
+      setbuyeremail(resolvedBuyerEmail);
+
+      roomId = `${item.email}-${resolvedBuyerEmail}`;
+      setchatRoomId(roomId);
 
       try {
-        const em = await AsyncStorage.getItem("email");
-        // console.log(em);
-        setemailinmobile(em);
+        const chatResponse = await axios.post(
+          `${serverAPIURL}/api/getchat`,
+          {
+            item,
+            buyer_email: resolvedBuyerEmail,
+          },
+        );
 
-        if (em === item.email) {
-          const res = await axios.post(`${serverAPIURL}/api/getuser`, {
-            email: buyer_email,
-          });
-          setusername(res.data.name);
-          setprofilepic(
-            res.data.profilepic ? { uri: res.data.profilepic } : profile,
-          );
-        } else {
-          const res = await axios.post(`${serverAPIURL}/api/getuser`, {
-            email: item.email,
-          });
-          setusername(res.data.name);
-          setprofilepic(
-            res.data.profilepic ? { uri: res.data.profilepic } : profile,
-          );
+        if (isActive) {
+          setMessages(chatResponse.data.messages || []);
         }
-
-        const email = isUserSeller ? buyer_email : em;
-        setbuyeremail(email);
-        const chatRoomId = `${item.email}-${email}`;
-        setchatRoomId(chatRoomId);
-
-        // console.log("REACHED HERE");
-        try {
-          await axios
-            .post(`${serverAPIURL}/api/getchat`, {
-              item: item,
-              buyer_email: email,
-            })
-            .then((response) => {
-              setMessages(response.data.messages);
-            });
-        } catch (error) {
-          console.log("Error fetching chat:", error);
-        }
-
-        // console.log("REACHED HERE 2");
-
-        // console.log("REACHED HERE 3");
-        socketRef.current = io(serverAPIURL);
-
-        const socket = socketRef.current;
-        socket.emit("joinRoom", { chatRoomId });
-
-        socket.on("newMessage", async () => {
-          // console.log('newMessage');
-
-          await axios
-            .post(`${serverAPIURL}/api/getchat`, {
-              item: item,
-              buyer_email: email,
-            })
-            .then((response) => {
-              setMessages(response.data.messages);
-            });
-        });
-
-        // console.log("REACHED HERE 4");
-
-        return () => {
-          // console.log("Disconnecting socket");
-          socket.emit("leaveRoom", { chatRoomId });
-          socket.disconnect();
-          socket.off("leaveRoom");
-        };
       } catch (error) {
-        console.error("An error occurred:", error);
-      } finally {
+        console.error(
+          "Error fetching chat:",
+          error.response?.data || error.message,
+        );
+      }
+
+      socketRef.current = io(serverAPIURL, {
+        transports: ["websocket"],
+      });
+
+      socketRef.current.emit("joinRoom", {
+        chatRoomId: roomId,
+      });
+
+      socketRef.current.on("newMessage", async () => {
+        try {
+          const response = await axios.post(
+            `${serverAPIURL}/api/getchat`,
+            {
+              item,
+              buyer_email: resolvedBuyerEmail,
+            },
+          );
+
+          if (isActive) {
+            setMessages(response.data.messages || []);
+          }
+        } catch (error) {
+          console.error(
+            "Error refreshing chat:",
+            error.response?.data || error.message,
+          );
+        }
+      });
+
+      socketRef.current.on("connect_error", (error) => {
+        console.error("Socket connection error:", error.message);
+      });
+    } catch (error) {
+      console.error(
+        "Error loading chat:",
+        error.response?.data || error.message,
+      );
+    } finally {
+      if (isActive) {
         setLoading(false);
       }
-    };
+    }
+  };
 
-    fetchData();
-    return () => {
-      active = false;
+  fetchData();
 
-      if (socketRef.current) {
+  return () => {
+    isActive = false;
+
+    if (socketRef.current) {
+      if (roomId) {
         socketRef.current.emit("leaveRoom", {
-          chatRoomId,
+          chatRoomId: roomId,
         });
-
-        socketRef.current.removeAllListeners();
-        socketRef.current.disconnect();
-        socketRef.current = null;
       }
-    };
-  }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        // This function will be called when the screen is unfocused
-        // console.log('Navigating away from Screen');
-        // console.log("Disconnecting socket");
-        socket.emit("leaveRoom", { chatRoomId });
-        socket.disconnect();
-        socket.off("leaveRoom");
-        // Place your cleanup code or any function you want to call here
-      };
-    }, []),
-  );
+      socketRef.current.removeAllListeners();
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+  };
+}, []);
 
   const handleBackPress = useCallback(() => {
     // console.log('Back Button Pressed', 'You pressed the back button!');
@@ -214,29 +229,45 @@ export default function ChatScreen({ route, navigation }) {
   }, [messages]);
 
   const handleSend = async () => {
-    if (message.length > 0) {
-      const newMessage = {
-        id: Date.now().toString(),
-        sender_email: emailinmobile,
-        timestamp: getFormattedTimestamp(new Date()),
-        type: "text",
-        content: message,
-      };
-      // setMessages([...messages, newMessage]);
-      setMessage("");
+  const trimmedMessage = message.trim();
 
-      try {
-        const response = await axios.post(`${serverAPIURL}/api/message`, {
-          message: newMessage,
-          chatRoomId: chatRoomId,
-          item: item,
-          buyer_email: buyeremail,
-        });
-      } catch (error) {
-        console.error("Error:", error);
-      }
-    }
+  if (!trimmedMessage) {
+    return;
+  }
+
+  const newMessage = {
+    id: Date.now().toString(),
+    sender_email: emailinmobile,
+    timestamp: getFormattedTimestamp(new Date()),
+    type: "text",
+    content: trimmedMessage,
   };
+
+  try {
+    setMessage("");
+
+    await axios.post(
+      `${serverAPIURL}/api/message`,
+      {
+        message: newMessage,
+        chatRoomId,
+        item,
+        buyer_email: buyeremail,
+      },
+      {
+        timeout: 30000,
+      },
+    );
+  } catch (error) {
+    console.error(
+      "Message send failed:",
+      error.response?.status,
+      error.response?.data || error.message,
+    );
+
+    setMessage(trimmedMessage);
+  }
+};
 
   const handleMiscellaneousSend = () => {
     setShowModal(true);
