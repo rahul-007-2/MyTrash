@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const mongoose = require('mongoose');
 const bodyParser = require('body-parser');
@@ -9,6 +8,7 @@ const socketIo = require('socket.io');
 const http = require('http');
 const axios = require('axios');
 const fs = require("fs");
+const cloudinary = require("cloudinary").v2;
 require("dotenv").config();
 const {
   Console
@@ -21,39 +21,117 @@ const {
 const app = express();
 const PORT = process.env.PORT || 5000;
 const server = http.createServer(app);
-const io = socketIo(server);
-const serverAPIURL = 'https://mytrash.onrender.com'
+const io = socketIo(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
+});
+const serverAPIURL = process.env.SERVER_API_URL
+
+//Firebase initialisation
 
 const admin = require('firebase-admin');
 
-// Initialize Firebase Admin with your service account key
+if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+  throw new Error('FIREBASE_SERVICE_ACCOUNT is missing');
+}
+
 const serviceAccount = JSON.parse(
   process.env.FIREBASE_SERVICE_ACCOUNT
-);  
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
+);
 
-const cloudinary = require("cloudinary").v2;
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+}
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
+if (
+  !process.env.CLOUDINARY_CLOUD_NAME ||
+  !process.env.CLOUDINARY_API_KEY ||
+  !process.env.CLOUDINARY_API_SECRET
+) {
+  throw new Error('Cloudinary environment variables are missing');
+}
 
-const upload = multer({ dest:"uploads/" });
+const storage = multer.memoryStorage();
+
+const fileFilter = (req, file, callback) => {
+  const allowedTypes = [
+    'image/jpeg',
+    'image/jpg',
+    'image/png',
+    'image/webp'
+  ];
+
+  if (!allowedTypes.includes(file.mimetype)) {
+    return callback(
+      new Error('Only JPG, PNG and WEBP images are allowed'),
+      false
+    );
+  }
+
+  callback(null, true);
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+    files: 8
+  }
+});
+const uploadBufferToCloudinary = (
+  buffer,
+  folder,
+  resourceType = 'image'
+) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        resource_type: resourceType
+      },
+      (error, result) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(result);
+      }
+    );
+
+    uploadStream.end(buffer);
+  });
+};
 
 app.get("/",(req,res)=>{
   res.send("Server is running")
 })
 
 // Middleware
-app.use(bodyParser.json());
 app.use(cors({
-  origin: '*', // Allow requests from any origin
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+app.use(express.json({
+  limit: '10mb'
+}));
+
+app.use(express.urlencoded({
+  extended: true,
+  limit: '10mb'
+}));
 // MongoDB connection
 
 mongoose.connect(process.env.MONGO_URI)
@@ -287,22 +365,39 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-app.post("/api/upload", upload.array("images"), async (req, res) => {
-  const { name, description, category, latitude, longitude, sellername, phone, email } = req.body;
-
+app.post("/api/upload", upload.array("images", 8), async (req, res) => {
   try {
-    const uploadPromises = req.files.map(file =>
-      cloudinary.uploader.upload(file.path, { folder: "items" })
-        .then(result => {
-          // delete temp file after upload
-          fs.unlink(file.path, err => {
-            if (err) console.error("Failed to delete temp file:", err);
-          });
-          return result.secure_url;
-        })
-    );
+    const {
+      name,
+      description,
+      category,
+      latitude,
+      longitude,
+      sellername,
+      phone,
+      email
+    } = req.body;
 
-    const imageUrls = await Promise.all(uploadPromises);
+    console.log("========== ITEM UPLOAD ==========");
+    console.log("BODY:", req.body);
+    console.log("FILES:", req.files?.length);
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({
+        message: "Please upload at least one image."
+      });
+    }
+
+    const imageUrls = [];
+
+    for (const file of req.files) {
+      const uploaded = await uploadBufferToCloudinary(
+        file.buffer,
+        "items"
+      );
+
+      imageUrls.push(uploaded.secure_url);
+    }
 
     const newItem = new Item({
       name,
@@ -317,38 +412,100 @@ app.post("/api/upload", upload.array("images"), async (req, res) => {
     });
 
     await newItem.save();
-    res.status(200).json({ message: "Item uploaded successfully", imageUrls });
-  } catch (error) {
-    res.status(500).json({ message: "Error uploading item", error });
-  }
-});
 
+    console.log("Item uploaded successfully.");
 
-app.post("/api/profilepic", upload.single("image"), async (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-
-  const { email } = req.body;
-
-  try {
-    const result = await cloudinary.uploader.upload(req.file.path, { folder: "profilepics" });
-    const imageUrl = result.secure_url;
-
-    // delete temp file after upload
-    fs.unlink(req.file.path, err => {
-      if (err) console.error("Failed to delete temp file:", err);
+    res.status(201).json({
+      success: true,
+      message: "Item uploaded successfully.",
+      item: newItem
     });
 
-    const updatedUser = await User.findOneAndUpdate(
-      { email },
-      { profilepic: imageUrl },
-      { new: true }
-    );
-
-    res.status(200).json({ message: "Profile picture updated", url: imageUrl, user: updatedUser });
   } catch (error) {
-    res.status(500).json({ message: "Error updating profile picture", error });
+
+    console.error("========== ITEM UPLOAD ERROR ==========");
+    console.error(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Error uploading item.",
+      error: error.message
+    });
   }
 });
+
+
+app.post(
+  "/api/profilepic",
+  upload.single("image"),
+  async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      console.log("========== PROFILE PICTURE UPLOAD ==========");
+      console.log("EMAIL:", email);
+      console.log("FILE RECEIVED:", Boolean(req.file));
+
+      if (!email) {
+        return res.status(400).json({
+          success: false,
+          message: "Email is required."
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: "No profile picture was received."
+        });
+      }
+
+      const user = await User.findOne({ email });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found."
+        });
+      }
+
+      const uploadedImage = await uploadBufferToCloudinary(
+        req.file.buffer,
+        "profilepics"
+      );
+
+      const imageUrl = uploadedImage.secure_url;
+
+      const updatedUser = await User.findOneAndUpdate(
+        { email },
+        {
+          $set: {
+            profilepic: imageUrl
+          }
+        },
+        {
+          new: true
+        }
+      );
+
+      res.status(200).json({
+        success: true,
+        message: "Profile picture updated successfully.",
+        url: imageUrl,
+        user: updatedUser
+      });
+    } catch (error) {
+      console.error("========== PROFILE PICTURE ERROR ==========");
+      console.error(error);
+
+      res.status(500).json({
+        success: false,
+        message: "Error updating profile picture.",
+        error: error.message
+      });
+    }
+  }
+);
 
 app.post('/api/updateuser', async (req, res) => {
   const {
@@ -877,70 +1034,155 @@ app.post('/api/send-email', async (req, res) => {
 });
 
 
-app.post('/api/imagemessage', upload.single('image'), async (req, res) => {
-
-  if (!req.file) {
-    return res.status(400).json({
-      error: 'No file uploaded'
-    });
-  }
-  const {
-    id,
-    sender_email,
-    timestamp,
-    type,
-    content,
-    item,
-    buyer_email,
-    chatRoomId
-  } = req.body;
-  const imageUrl = `/uploads/${req.file.filename}`;
-
-  let parseditem = JSON.parse(item);
-
-  if (sender_email === buyer_email) {
-    const user = await axios.post(`${serverAPIURL}/api/getuser`, {
-      email: sender_email
-    });
-    const username = user.data.name;
-    const message2 = {
-      title: `A New Message from ${username}`,
-      body: `For ${parseditem.name}`,
-      email: parseditem.email,
-      data: {
-        item: parseditem,
-        isUserSeller: true,
-        buyer_email: buyer_email
-      }
-    };
-
+app.post(
+  "/api/imagemessage",
+  upload.single("image"),
+  async (req, res) => {
     try {
-      await axios.post(`${serverAPIURL}/send-expo-notification`, message2);
-    } catch (error) {
-      console.error('Error sending notification:', error);
-    }
-  } else {
-    const user = await axios.post(`${serverAPIURL}/api/getuser`, {
-      email: sender_email
-    });
-    const username = user.data.name;
-    const message2 = {
-      title: `A New Message from ${username}`,
-      body: `For ${parseditem.name}`,
-      email: buyer_email,
-      data: {
-        item: parseditem,
-        isUserSeller: false,
-        buyer_email: " "
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: "No image file was received."
+        });
       }
-    };
 
-    try {
-      await axios.post(`${serverAPIURL}/send-expo-notification`, message2);
+      const {
+        id,
+        sender_email,
+        timestamp,
+        type,
+        item,
+        buyer_email,
+        chatRoomId
+      } = req.body;
+
+      if (
+        !id ||
+        !sender_email ||
+        !timestamp ||
+        !type ||
+        !item ||
+        !buyer_email ||
+        !chatRoomId
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Required message information is missing."
+        });
+      }
+
+      let parsedItem;
+
+      try {
+        parsedItem =
+          typeof item === "string"
+            ? JSON.parse(item)
+            : item;
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid item data."
+        });
+      }
+
+      const uploadedImage = await uploadBufferToCloudinary(
+        req.file.buffer,
+        "chat-images"
+      );
+
+      const imageUrl = uploadedImage.secure_url;
+
+      const updatedChat = await Chat.findOneAndUpdate(
+        {
+          "item._id": parsedItem._id,
+          buyer_email
+        },
+        {
+          $push: {
+            messages: {
+              id,
+              sender_email,
+              timestamp,
+              type: "image",
+              content: imageUrl
+            }
+          }
+        },
+        {
+          new: true
+        }
+      );
+
+      if (!updatedChat) {
+        return res.status(404).json({
+          success: false,
+          message: "Chat not found."
+        });
+      }
+
+      try {
+        const sender = await User.findOne({
+          email: sender_email
+        });
+
+        const username = sender?.name || "A user";
+
+        const notificationPayload =
+          sender_email === buyer_email
+            ? {
+                title: `A New Message from ${username}`,
+                body: `For ${parsedItem.name}`,
+                email: parsedItem.email,
+                data: {
+                  item: parsedItem,
+                  isUserSeller: true,
+                  buyer_email
+                }
+              }
+            : {
+                title: `A New Message from ${username}`,
+                body: `For ${parsedItem.name}`,
+                email: buyer_email,
+                data: {
+                  item: parsedItem,
+                  isUserSeller: false,
+                  buyer_email: ""
+                }
+              };
+
+        await axios.post(
+          `${serverAPIURL}/send-expo-notification`,
+          notificationPayload
+        );
+      } catch (notificationError) {
+        console.error(
+          "Image-message notification error:",
+          notificationError.response?.data ||
+            notificationError.message
+        );
+      }
+
+      io.to(chatRoomId).emit("newMessage", {
+        chatRoomId
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "Image message sent successfully.",
+        imageUrl
+      });
     } catch (error) {
-      console.error('Error sending notification:', error);
+      console.error("========== IMAGE MESSAGE ERROR ==========");
+      console.error(error);
+
+      res.status(500).json({
+        success: false,
+        message: "Error sending image message.",
+        error: error.message
+      });
     }
   }
+);
 
   // console.log(req.body);
 

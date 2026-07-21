@@ -62,51 +62,73 @@ export default function CreateAccount({navigation}) {
   };
 
   const submit = async () => {
-    if (validate()) {
-      try {
-        const formData = new FormData();
-      
-      const responsedata  =  await axios.post(`${serverAPIURL}/api/getuser`,{email : await AsyncStorage.getItem('email')}).then(async(response) => {
+  if (!validate()) return;
 
-      formData.append('name', name);
-      formData.append('description', description);
-      formData.append('category', category);
-      formData.append('latitude', String(response.data.latitude));
-      formData.append('longitude', String(response.data.longitude));
-      formData.append('sellername', response.data.name);
-      formData.append('phone', response.data.number);                      
-      formData.append('email', response.data.email);    
+  setLoading(true);
 
+  try {
+    const email = await AsyncStorage.getItem('email');
 
-      images.forEach((images, index) => {
-        formData.append('images', {
-          uri: images, // this prop name was supposd to be uri
-          name: `photo${index}.jpg`,
-          type: 'image/jpeg',
-        });
+    const userResponse = await axios.post(
+      `${serverAPIURL}/api/getuser`,
+      { email }
+    );
+
+    const user = userResponse.data;
+
+    const formData = new FormData();
+
+    formData.append('name', name);
+    formData.append('description', description);
+    formData.append('category', category);
+    formData.append('latitude', String(user.latitude));
+    formData.append('longitude', String(user.longitude));
+    formData.append('sellername', user.name);
+    formData.append('phone', String(user.number));
+    formData.append('email', user.email);
+
+    images.forEach((imageUri, index) => {
+      formData.append('images', {
+        uri: imageUri,
+        name: `photo-${index}.jpg`,
+        type: 'image/jpeg',
       });
-
-      setLoading(true);
-
-      const res = await axios.post(`${serverAPIURL}/api/upload`, formData, { // IP seems to change everytime
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }).then(() => setLoading(false));
-
-      Alert.alert('Submitted');
-      // console.log('Uploaded', name, description, category);
-      
-      navigation.goBack();
-
     });
-      
-      } catch (error) {
-        console.error(error);
-        Alert.alert('Error', 'There was an error uploading your data.');
-      }
+
+    const uploadResponse = await axios.post(
+      `${serverAPIURL}/api/upload`,
+      formData
+    );
+
+    console.log('Upload response:', uploadResponse.data);
+
+    Alert.alert('Success', 'Item uploaded successfully.');
+    navigation.goBack();
+  } catch (error) {
+    console.error('Upload error:', error);
+
+    if (error.response) {
+      console.error('Status:', error.response.status);
+      console.error('Backend response:', error.response.data);
+
+      Alert.alert(
+        'Upload failed',
+        error.response.data?.message || 'The backend rejected the upload.'
+      );
+    } else if (error.request) {
+      console.error('No response received:', error.request);
+
+      Alert.alert(
+        'Network error',
+        'The app could not connect to the server.'
+      );
+    } else {
+      Alert.alert('Error', error.message);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   const pickImages = async () => {
 

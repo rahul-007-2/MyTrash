@@ -1,36 +1,50 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useFocusEffect } from '@react-navigation/native';
-import { View, TextInput, Button, FlatList, Text, StyleSheet, KeyboardAvoidingView, Platform, Modal, TouchableOpacity, Image, Linking , ScrollView, ActivityIndicator, BackHandler} from 'react-native';
-import * as ImagePicker from 'expo-image-picker'; //
-import * as Location from 'expo-location'; //
-import mapimage from './assets/map-image.png';
-import send from './assets/send.png';
-import attachment from './assets/attachment.png';
-import cancel from './assets/cancel.png';
-import imageicon from './assets/imageicon.png';
-import locationicon from './assets/locationicon.png';
-import { StatusBar } from 'expo-status-bar'; //
-import * as NavigationBar from 'expo-navigation-bar'; //
-import backarrow from './assets/backarrow.png';
-import profile from './assets/profile.png';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import io from 'socket.io-client';
-import axios from 'axios';
-import { serverAPIURL } from './config';
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import {
+  View,
+  TextInput,
+  Button,
+  FlatList,
+  Text,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  Modal,
+  TouchableOpacity,
+  Image,
+  Linking,
+  ScrollView,
+  ActivityIndicator,
+  BackHandler,
+} from "react-native";
+import * as ImagePicker from "expo-image-picker"; //
+import * as Location from "expo-location"; //
+import mapimage from "./assets/map-image.png";
+import send from "./assets/send.png";
+import attachment from "./assets/attachment.png";
+import cancel from "./assets/cancel.png";
+import imageicon from "./assets/imageicon.png";
+import locationicon from "./assets/locationicon.png";
+import { StatusBar } from "expo-status-bar"; //
+import * as NavigationBar from "expo-navigation-bar"; //
+import backarrow from "./assets/backarrow.png";
+import profile from "./assets/profile.png";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import io from "socket.io-client";
+import axios from "axios";
+import { serverAPIURL } from "./config";
 
 NavigationBar.setBackgroundColorAsync("#01132B");
 
-  //----------------------------------------------------------------- works when nav is implemented
+//----------------------------------------------------------------- works when nav is implemented
 export default function ChatScreen({ route, navigation }) {
-
   // { item: [itemobject], isseller: true/false, buyer_email : (empty if user isnt seller) }
-  const {item, isUserSeller , buyer_email, noti} = route.params;
+  const { item, isUserSeller, buyer_email, noti } = route.params;
 
   //-----------------------------------------------------------------
 
-
-  const [buyeremail, setbuyeremail] = useState('');
-  const [message, setMessage] = useState('');
+  const [buyeremail, setbuyeremail] = useState("");
+  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
 
   const [chatRoomId, setchatRoomId] = useState(``);
@@ -39,29 +53,33 @@ export default function ChatScreen({ route, navigation }) {
   const [loading, setLoading] = useState(true);
   const [profilepic, setprofilepic] = useState("");
 
-  const socket = io(serverAPIURL);
-
-
-
-
+  const socketRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
       // console.log('Fetching');
-  
+
       try {
-        const em = await AsyncStorage.getItem('email');
+        const em = await AsyncStorage.getItem("email");
         // console.log(em);
         setemailinmobile(em);
 
         if (em === item.email) {
-          const res = await axios.post(`${serverAPIURL}/api/getuser`, { email: buyer_email });
+          const res = await axios.post(`${serverAPIURL}/api/getuser`, {
+            email: buyer_email,
+          });
           setusername(res.data.name);
-          setprofilepic(res.data.profilepic ? { uri: `${serverAPIURL}${res.data.profilepic}` } : profile);
+          setprofilepic(
+            res.data.profilepic ? { uri: res.data.profilepic } : profile,
+          );
         } else {
-          const res = await axios.post(`${serverAPIURL}/api/getuser`, { email: item.email });
+          const res = await axios.post(`${serverAPIURL}/api/getuser`, {
+            email: item.email,
+          });
           setusername(res.data.name);
-          setprofilepic(res.data.profilepic ? { uri: `${serverAPIURL}${res.data.profilepic}` } : profile);
+          setprofilepic(
+            res.data.profilepic ? { uri: res.data.profilepic } : profile,
+          );
         }
 
         const email = isUserSeller ? buyer_email : em;
@@ -71,8 +89,12 @@ export default function ChatScreen({ route, navigation }) {
 
         // console.log("REACHED HERE");
         try {
-          await axios.post(`${serverAPIURL}/api/getchat`, { item: item, buyer_email: email })
-            .then(response => {
+          await axios
+            .post(`${serverAPIURL}/api/getchat`, {
+              item: item,
+              buyer_email: email,
+            })
+            .then((response) => {
               setMessages(response.data.messages);
             });
         } catch (error) {
@@ -81,15 +103,21 @@ export default function ChatScreen({ route, navigation }) {
 
         // console.log("REACHED HERE 2");
 
-
         // console.log("REACHED HERE 3");
-        socket.emit('joinRoom', { chatRoomId });
+        socketRef.current = io(serverAPIURL);
 
-        socket.on('newMessage', async () => {
+        const socket = socketRef.current;
+        socket.emit("joinRoom", { chatRoomId });
+
+        socket.on("newMessage", async () => {
           // console.log('newMessage');
 
-          await axios.post(`${serverAPIURL}/api/getchat`, { item: item, buyer_email: email })
-            .then(response => {
+          await axios
+            .post(`${serverAPIURL}/api/getchat`, {
+              item: item,
+              buyer_email: email,
+            })
+            .then((response) => {
               setMessages(response.data.messages);
             });
         });
@@ -98,11 +126,10 @@ export default function ChatScreen({ route, navigation }) {
 
         return () => {
           // console.log("Disconnecting socket");
-          socket.emit('leaveRoom', { chatRoomId });
+          socket.emit("leaveRoom", { chatRoomId });
           socket.disconnect();
-          socket.off('leaveRoom');
+          socket.off("leaveRoom");
         };
-
       } catch (error) {
         console.error("An error occurred:", error);
       } finally {
@@ -111,6 +138,19 @@ export default function ChatScreen({ route, navigation }) {
     };
 
     fetchData();
+    return () => {
+      active = false;
+
+      if (socketRef.current) {
+        socketRef.current.emit("leaveRoom", {
+          chatRoomId,
+        });
+
+        socketRef.current.removeAllListeners();
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+    };
   }, []);
 
   useFocusEffect(
@@ -119,12 +159,12 @@ export default function ChatScreen({ route, navigation }) {
         // This function will be called when the screen is unfocused
         // console.log('Navigating away from Screen');
         // console.log("Disconnecting socket");
-        socket.emit('leaveRoom', { chatRoomId });
+        socket.emit("leaveRoom", { chatRoomId });
         socket.disconnect();
-        socket.off('leaveRoom');
+        socket.off("leaveRoom");
         // Place your cleanup code or any function you want to call here
       };
-    }, [])
+    }, []),
   );
 
   const handleBackPress = useCallback(() => {
@@ -137,17 +177,17 @@ export default function ChatScreen({ route, navigation }) {
   // Add the back button event listener when the screen is focused
   useFocusEffect(
     useCallback(() => {
-      const subscription = BackHandler.addEventListener('hardwareBackPress', handleBackPress);
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        handleBackPress,
+      );
 
       // Clean up the event listener when the screen is unfocused
       return () => {
         subscription?.remove?.();
       };
-    }, [handleBackPress])
+    }, [handleBackPress]),
   );
-
-
-
 
   const [showModal, setShowModal] = useState(false);
   // const [suremodalVisible, setsureModalVisible] = useState(false);
@@ -164,8 +204,8 @@ export default function ChatScreen({ route, navigation }) {
 
   const getFormattedTimestamp = (date) => {
     // console.log(`${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })}`)
-    return `${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}, ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true })}`;
-}
+    return `${date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}, ${date.toLocaleTimeString("en-US", { hour: "numeric", minute: "numeric", hour12: true })}`;
+  };
 
   useEffect(() => {
     if (scrollViewRef.current) {
@@ -174,31 +214,27 @@ export default function ChatScreen({ route, navigation }) {
   }, [messages]);
 
   const handleSend = async () => {
-
-    
-
     if (message.length > 0) {
       const newMessage = {
         id: Date.now().toString(),
         sender_email: emailinmobile,
         timestamp: getFormattedTimestamp(new Date()),
-        type: 'text',
-        content: message
+        type: "text",
+        content: message,
       };
       // setMessages([...messages, newMessage]);
-      setMessage('');
-      
+      setMessage("");
+
       try {
         const response = await axios.post(`${serverAPIURL}/api/message`, {
-          message  : newMessage,
-          chatRoomId : chatRoomId,
-          item : item,
-          buyer_email : buyeremail
+          message: newMessage,
+          chatRoomId: chatRoomId,
+          item: item,
+          buyer_email: buyeremail,
         });
       } catch (error) {
-        console.error('Error:', error);
+        console.error("Error:", error);
       }
-
     }
   };
 
@@ -208,100 +244,89 @@ export default function ChatScreen({ route, navigation }) {
 
   const exit = () => {
     // console.log('Exit');
-    if(noti == undefined) {
+    if (noti == undefined) {
       // console.log('Exit1')
       navigation.goBack();
-    }else if (noti == true){
+    } else if (noti == true) {
       // console.log('Exit2')
       navigation.navigate("HomePage");
     }
-  }
-
+  };
 
   const handleOptionSelect = async (option) => {
-    if (option === 'Image') {
-      let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (option === "Image") {
+      try {
+        const permissionResult =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-      if (permissionResult.granted === false) {
-        alert("You've refused to allow this app to access your photos!");
-        return;
-      }
-
-      let pickerResult = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [2, 2],
-        quality: 0.6,
-      });
-
-      if (pickerResult.canceled === true) {
-        return;
-      }
-
-      const imageMessage = {
-        // id: Date.now().toString(),
-        // image: pickerResult.assets[0].uri,
-        // sender: true,
-        // timestamp: new Date(),
-        id: Date.now().toString(),
-        sender_email: emailinmobile,
-        timestamp: getFormattedTimestamp(new Date()),
-        type: 'image',
-        content: pickerResult.assets[0].uri
-      };
-      // setMessages([...messages, imageMessage]);
-      setShowModal(false);
-
-        const formData = new FormData();
-        formData.append('image', {
-        uri: pickerResult.assets[0].uri,
-        name: 'photo.jpg',
-        type: 'image/jpeg',
-        });
-
-        formData.append('id', imageMessage.id);
-        formData.append('sender_email', imageMessage.sender_email);
-        formData.append('timestamp', imageMessage.timestamp);
-        formData.append('type', imageMessage.type);
-        formData.append('content', imageMessage.content);  
-        formData.append('item', JSON.stringify(item)); 
-        formData.append('buyer_email', buyeremail); 
-        formData.append('chatRoomId', chatRoomId);
-
-        try {
-          const response = await axios.post(`${serverAPIURL}/api/imagemessage`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-            timeout: 1000, // Increased timeout
-          });
-          // console.log('Image upload successful:', response.data);
-        } catch (error) {
-            const response = await axios.post(`${serverAPIURL}/api/imagemessage`, formData, {
-              headers: { 'Content-Type': 'multipart/form-data' },
-              timeout: 1000, // Increased timeout
-            });
-          if (error.response) {
-            // Server responded with a status other than 2xx
-            console.error('Server error:', error.response.status, error.response.data);
-          } else if (error.request) {
-            // No response received from server
-            // const response = await axios.post(`${serverAPIURL}/api/imagemessage`, formData, {
-            //   headers: { 'Content-Type': 'multipart/form-data' },
-            //   timeout: 1000, // Increased timeout
-            // });
-            console.error('No response from server:', error.request);
-          } else {
-            // Other errors
-            console.error('Error in setting up request:', error.message);
-          }
+        if (!permissionResult.granted) {
+          alert("You've refused to allow this app to access your photos!");
+          return;
         }
 
+        const pickerResult = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.6,
+        });
 
+        if (pickerResult.canceled) {
+          return;
+        }
 
-    } else if (option === 'Location') {
+        setShowModal(false);
+
+        const selectedImage = pickerResult.assets[0];
+
+        const imageMessage = {
+          id: Date.now().toString(),
+          sender_email: emailinmobile,
+          timestamp: getFormattedTimestamp(new Date()),
+          type: "image",
+        };
+
+        const formData = new FormData();
+
+        formData.append("image", {
+          uri: selectedImage.uri,
+          name: selectedImage.fileName || `chat-${Date.now()}.jpg`,
+          type: selectedImage.mimeType || "image/jpeg",
+        });
+
+        formData.append("id", imageMessage.id);
+        formData.append("sender_email", imageMessage.sender_email);
+        formData.append("timestamp", imageMessage.timestamp);
+        formData.append("type", imageMessage.type);
+        formData.append("item", JSON.stringify(item));
+        formData.append("buyer_email", buyeremail);
+        formData.append("chatRoomId", chatRoomId);
+
+        const response = await axios.post(
+          `${serverAPIURL}/api/imagemessage`,
+          formData,
+          {
+            timeout: 30000,
+          },
+        );
+
+        console.log("Image uploaded successfully:", response.data);
+      } catch (error) {
+        if (error.response) {
+          console.error(
+            "Image upload failed:",
+            error.response.status,
+            error.response.data,
+          );
+        } else {
+          console.error("Image upload failed:", error.message);
+        }
+      }
+    } else if (option === "Location") {
       let { status } = await Location.requestForegroundPermissionsAsync();
 
-      if (status !== 'granted') {
-        alert('Permission to access location was denied');
+      if (status !== "granted") {
+        alert("Permission to access location was denied");
         return;
       }
 
@@ -313,56 +338,61 @@ export default function ChatScreen({ route, navigation }) {
         id: Date.now().toString(),
         sender_email: emailinmobile,
         timestamp: getFormattedTimestamp(new Date()),
-        type: 'location',
-        content: `https://www.google.com/maps/search/?api=1&query=${location.coords.latitude},${location.coords.longitude}`
+        type: "location",
+        content: `https://www.google.com/maps/search/?api=1&query=${location.coords.latitude},${location.coords.longitude}`,
       };
       // setMessages([...messages, locationMessage]);
 
-
       try {
         const response = await axios.post(`${serverAPIURL}/api/message`, {
-          message  : locationMessage,
-          chatRoomId : chatRoomId,
-          item : item,
-          buyer_email : buyeremail
+          message: locationMessage,
+          chatRoomId: chatRoomId,
+          item: item,
+          buyer_email: buyeremail,
         });
       } catch (error) {
-        console.error('Error:', error);
+        console.error("Error:", error);
       }
-
     } else {
       // console.log('Selected option:', option);
       setShowModal(false);
     }
   };
 
-  const renderMessageBubble =  ({ messagebox }) => { 
-    
+  const renderMessageBubble = ({ messagebox }) => {
     let sender = false;
-    let senderemail = emailinmobile
-    if (senderemail === messagebox.sender_email){
+    let senderemail = emailinmobile;
+    if (senderemail === messagebox.sender_email) {
       sender = true;
-    }else{
+    } else {
       sender = false;
     }
 
-    if (messagebox.type === 'image') {
+    if (messagebox.type === "image") {
       return (
-        <View style={[styles.bubble, sender ? styles.senderBubble : styles.receiverBubble]}>
-          <Image source={{ uri: `${serverAPIURL}${messagebox.content}` }} style={styles.imageBubble} />
+        <View
+          style={[
+            styles.bubble,
+            sender ? styles.senderBubble : styles.receiverBubble,
+          ]}
+        >
+          <Image
+            source={{ uri: messagebox.content }}
+            style={styles.imageBubble}
+          />
           <Text style={styles.timestamp}>{messagebox.timestamp}</Text>
         </View>
       );
-    } else if (messagebox.type === 'location') {
+    } else if (messagebox.type === "location") {
       return (
         <TouchableOpacity
           onPress={() => Linking.openURL(messagebox.content)}
-          style={[styles.bubble, sender ? styles.senderBubble : styles.receiverBubble]}
+          style={[
+            styles.bubble,
+            sender ? styles.senderBubble : styles.receiverBubble,
+          ]}
         >
-          <Image
-            source={mapimage}
-            style={styles.locationBubble}
-          />
+          <Image source={mapimage} style={styles.locationBubble} />
           <Text style={styles.boldtext}>Click To View Location</Text>
           <Text style={styles.timestamp}>{messagebox.timestamp}</Text>
         </TouchableOpacity>
@@ -381,9 +411,25 @@ export default function ChatScreen({ route, navigation }) {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' , backgroundColor:"#011F45"}}>
-        <View style={{ height:100, width:100, justifyContent: 'center', alignItems: 'center' , backgroundColor:"white", borderRadius:10}}>
-        <ActivityIndicator size="large" color="#0000ff" />
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#011F45",
+        }}
+      >
+        <View
+          style={{
+            height: 100,
+            width: 100,
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: "white",
+            borderRadius: 10,
+          }}
+        >
+          <ActivityIndicator size="large" color="#0000ff" />
         </View>
       </View>
     );
@@ -395,56 +441,44 @@ export default function ChatScreen({ route, navigation }) {
       behavior={Platform.OS === "ios" ? "padding" : null}
       keyboardVerticalOffset={Platform.OS === "ios" ? 40 : 0} // Adjust the offset as needed
     >
+      <StatusBar backgroundColor="#01132B" style="light" />
 
-     {/* <Modal
-        transparent={true}
-        animationType="slide"
-        visible={suremodalVisible}
-        onRequestClose={handleCancel}
-      >
-        <View style={styles2.modalOverlay}>
-          <View style={styles2.modalContainer}>
-            <Text style={styles2.modalText}>Are You Sure?</Text>
-            <View style={styles2.buttonContainer}>
-              <TouchableOpacity style={styles2.button} onPress={handleConfirm}>
-                <Text style={styles2.buttonText}>Yes</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles2.button, {backgroundColor:'rgba(255,0,0,0.7)'}]} onPress={handleCancel}>
-                <Text style={styles2.buttonText}>Cancel</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal> */}
-
-
-    <StatusBar backgroundColor="#01132B" style="light" />
-
-        <View style={styles.topContainer} >
-        <TouchableOpacity onPress={()=>exit()}>
-        <Image source={backarrow} style={{height:50,width:50}}></Image>
+      <View style={styles.topContainer}>
+        <TouchableOpacity onPress={() => exit()}>
+          <Image source={backarrow} style={{ height: 50, width: 50 }}></Image>
         </TouchableOpacity>
 
-        <Image source={ profilepic } style={{height:50,width:50, marginStart:5, borderRadius:30}}></Image>
+        <Image
+          source={profilepic}
+          style={{ height: 50, width: 50, marginStart: 5, borderRadius: 30 }}
+        ></Image>
 
-        <View style={{alignContent:'flex-start', marginStart:10, justifyContent: 'space-evenly'}}>
-        <Text style={styles.optionButtonText}>{username}</Text>
-        <Text style={{
+        <View
+          style={{
+            alignContent: "flex-start",
+            marginStart: 10,
+            justifyContent: "space-evenly",
+          }}
+        >
+          <Text style={styles.optionButtonText}>{username}</Text>
+          <Text
+            style={{
               fontSize: 12,
-              color: '#fff',
-            }}>{item.name}</Text>
+              color: "#fff",
+            }}
+          >
+            {item.name}
+          </Text>
 
-        {/* <TouchableOpacity>
+          {/* <TouchableOpacity>
         <Text style={{
               fontSize: 12,
               color: 'gray',
         }}>View Profile</Text>
         </TouchableOpacity> */}
-
         </View>
 
-        <View style={{flex:1}}></View>
-
+        <View style={{ flex: 1 }}></View>
 
         {/* {isUserSeller && (
           <TouchableOpacity
@@ -456,14 +490,14 @@ export default function ChatScreen({ route, navigation }) {
           <Text style={styles.subText}>ITEM WILL BE REMOVED FROM{'\n'}THE MARKETPLACE</Text>
         </TouchableOpacity>
         )} */}
-
       </View>
 
-      <ScrollView style={{  paddingTop: 10, paddingBottom: 10 , marginBottom: 10}}  ref={scrollViewRef} >
+      <ScrollView
+        style={{ paddingTop: 10, paddingBottom: 10, marginBottom: 10 }}
+        ref={scrollViewRef}
+      >
         {messages.map((messagebox) => (
-          <View key={messagebox.id}>
-            {renderMessageBubble({ messagebox })}
-          </View>
+          <View key={messagebox.id}>{renderMessageBubble({ messagebox })}</View>
         ))}
         <View style={{ height: 10 }} />
       </ScrollView>
@@ -475,13 +509,16 @@ export default function ChatScreen({ route, navigation }) {
           onChangeText={setMessage}
           placeholder="Type your message"
           placeholderTextColor="gray"
-          color='white'
+          color="white"
         />
         <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-            <Image style={{height:28,width:28}} source={send}></Image>
+          <Image style={{ height: 28, width: 28 }} source={send}></Image>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.sendButton} onPress={handleMiscellaneousSend}>
-            <Image style={{height:28,width:28}} source={attachment}></Image>
+        <TouchableOpacity
+          style={styles.sendButton}
+          onPress={handleMiscellaneousSend}
+        >
+          <Image style={{ height: 28, width: 28 }} source={attachment}></Image>
         </TouchableOpacity>
       </View>
       <Modal
@@ -492,16 +529,34 @@ export default function ChatScreen({ route, navigation }) {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <TouchableOpacity style={[styles.optionButton, styles.lightBlueButton]} onPress={() => handleOptionSelect('Image')}>
-              <Image style={{height:32,width:32}} source={imageicon}></Image>
+            <TouchableOpacity
+              style={[styles.optionButton, styles.lightBlueButton]}
+              onPress={() => handleOptionSelect("Image")}
+            >
+              <Image
+                style={{ height: 32, width: 32 }}
+                source={imageicon}
+              ></Image>
               <Text style={styles.optionButtonText}>Send Image</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.optionButton, styles.lightBlueButton]} onPress={() => handleOptionSelect('Location')}>
-              <Image style={{height:32,width:32}} source={locationicon}></Image>
+            <TouchableOpacity
+              style={[styles.optionButton, styles.lightBlueButton]}
+              onPress={() => handleOptionSelect("Location")}
+            >
+              <Image
+                style={{ height: 32, width: 32 }}
+                source={locationicon}
+              ></Image>
               <Text style={styles.optionButtonText}>Send Location</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.optionButton, {backgroundColor:'rgba(255,0,0,0.7)'}]} onPress={() => handleOptionSelect('Cancel')}>
-              <Image style={{height:32,width:32}} source={cancel}></Image>
+            <TouchableOpacity
+              style={[
+                styles.optionButton,
+                { backgroundColor: "rgba(255,0,0,0.7)" },
+              ]}
+              onPress={() => handleOptionSelect("Cancel")}
+            >
+              <Image style={{ height: 32, width: 32 }} source={cancel}></Image>
               <Text style={styles.optionButtonText}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -514,49 +569,49 @@ export default function ChatScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor:'#011f45'
+    backgroundColor: "#011f45",
   },
   bubble: {
     padding: 10,
     borderRadius: 10,
     marginVertical: 5,
-    maxWidth: '80%',
+    maxWidth: "80%",
   },
   senderBubble: {
-    backgroundColor: 'rgba(209, 230, 211,0.9)',
-    alignSelf: 'flex-end',
+    backgroundColor: "rgba(209, 230, 211,0.9)",
+    alignSelf: "flex-end",
     marginRight: 10, // Add margin to the right for sender's bubble
   },
   receiverBubble: {
-    backgroundColor: 'rgba(255, 255, 255,0.7)',
-    alignSelf: 'flex-start',
+    backgroundColor: "rgba(255, 255, 255,0.7)",
+    alignSelf: "flex-start",
     marginLeft: 10, // Add margin to the left for receiver's bubble
   },
   senderText: {
-    color: '#000',
+    color: "#000",
   },
   receiverText: {
-    color: '#000',
+    color: "#000",
   },
   inputContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 10,
     borderTopWidth: 1,
-    borderColor: 'rgb(80,80,80)',
-    backgroundColor:'#01132B'
+    borderColor: "rgb(80,80,80)",
+    backgroundColor: "#01132B",
   },
   topContainer: {
     paddingTop: 45,
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 10,
     borderBottomWidth: 1,
-    borderColor: 'rgb(80,80,80)',
-    backgroundColor:'#01132B'
+    borderColor: "rgb(80,80,80)",
+    backgroundColor: "#01132B",
   },
   input: {
     flex: 1,
     height: 45,
-    borderColor: 'rgb(80,80,80)',
+    borderColor: "rgb(80,80,80)",
     borderWidth: 1,
     paddingHorizontal: 8,
     marginRight: 10,
@@ -565,23 +620,23 @@ const styles = StyleSheet.create({
   miscButton: {
     width: 40,
     height: 40,
-    backgroundColor: '#ccc',
+    backgroundColor: "#ccc",
     borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   miscButtonText: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   modalContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    backgroundColor: 'rgba(0, 55, 120,0.89)',
+    backgroundColor: "rgba(0, 55, 120,0.89)",
     padding: 20,
     borderRadius: 10,
   },
@@ -589,15 +644,15 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 5,
     marginBottom: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   optionButtonText: {
     fontSize: 14,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
   },
   lightBlueButton: {
-    backgroundColor: 'rgba(122,220,255,0.9)',
+    backgroundColor: "rgba(122,220,255,0.9)",
   },
   imageBubble: {
     width: 270,
@@ -611,89 +666,87 @@ const styles = StyleSheet.create({
   },
   timestamp: {
     fontSize: 10,
-    color: 'grey',
+    color: "grey",
     marginTop: 5,
-    alignSelf: 'flex-end',
+    alignSelf: "flex-end",
   },
-  boldtext:{
+  boldtext: {
     // fontFamily : 'bernoru',
-    alignSelf:'center',
-    fontWeight: 'bold',
-    fontSize:15,
-    color:'black',
-    opacity:0.7,
+    alignSelf: "center",
+    fontWeight: "bold",
+    fontSize: 15,
+    color: "black",
+    opacity: 0.7,
   },
   sendButton: {
-    backgroundColor: '#1E90FF',
+    backgroundColor: "#1E90FF",
     paddingVertical: 8,
     paddingHorizontal: 7,
-    marginEnd:5,
+    marginEnd: 5,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   sendButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   button: {
-    backgroundColor: '#3B89EB',
+    backgroundColor: "#3B89EB",
     paddingVertical: 4,
     paddingHorizontal: 7,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   buttonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   subText: {
-    color: 'white',
+    color: "white",
     fontSize: 9,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 4,
   },
-  
 });
 
 const styles2 = StyleSheet.create({
-
   modalOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContainer: {
     width: 300,
     padding: 20,
-    backgroundColor: 'rgba(0, 55, 120,0.89)',
+    backgroundColor: "rgba(0, 55, 120,0.89)",
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
   modalText: {
     fontSize: 18,
     marginBottom: 20,
-    color:'white',
-    fontWeight:'bold'
+    color: "white",
+    fontWeight: "bold",
   },
   buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    width: '100%',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
   },
   button: {
     flex: 1,
     padding: 10,
     margin: 5,
-    alignItems: 'center',
-    backgroundColor: 'rgba(122,220,255,0.9)',
+    alignItems: "center",
+    backgroundColor: "rgba(122,220,255,0.9)",
     borderRadius: 5,
   },
-  buttonText:{
-    fontWeight:'bold',
-    color:'white',
+  buttonText: {
+    fontWeight: "bold",
+    color: "white",
   },
 });
