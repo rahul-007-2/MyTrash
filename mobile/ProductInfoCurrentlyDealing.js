@@ -93,7 +93,7 @@ export default function ProductInfo({ route, navigation }) {
             <TouchableOpacity onPress={() => handleImagePress(0)}>
               <Image
                 style={styles.primaryImage}
-                source={{ uri: `${serverAPIURL}/${images[0]}` }}
+                source={{ uri: images[0] }}
               />
             </TouchableOpacity>
           </View>
@@ -109,7 +109,7 @@ export default function ProductInfo({ route, navigation }) {
               >
                 <Image
                   style={styles.thumbnailImage}
-                  source={{ uri: `${serverAPIURL}/${image}` }}
+                  source={{ uri: image }}
                 />
               </TouchableOpacity>
             ))}
@@ -170,7 +170,7 @@ export default function ProductInfo({ route, navigation }) {
                   <View key={index} style={styles.fullscreenImageContainer}>
                     <Image
                       style={styles.fullscreenImage}
-                      source={{ uri: `${serverAPIURL}/${image}` }}
+                      source={{ uri: image }}
                     />
                   </View>
                 ))}

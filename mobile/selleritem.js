@@ -332,13 +332,13 @@ export default function ProductInfo({ route, navigation }) {
         <View style={styles.content2}>
           <View style={styles.primaryImageContainer}>
             <TouchableOpacity onPress={() => handleImagePress(0)}>
-              <Image style={styles.primaryImage} source={{uri : `${serverAPIURL}/${images[0]}`}} />
+              <Image style={styles.primaryImage} source={{ uri: images[0] }} />
             </TouchableOpacity>
           </View>
           <ScrollView horizontal={true} showsHorizontalScrollIndicator={false} style={styles.horizontalScrollView}>
             {images.map((image, index) => (
               <TouchableOpacity key={index} onPress={() => handleImagePress(index)}>
-                <Image style={styles.thumbnailImage} source={{uri : `${serverAPIURL}/${image}`}} />
+                <Image style={styles.thumbnailImage} source={{ uri: image }} />
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -463,7 +463,7 @@ export default function ProductInfo({ route, navigation }) {
                   >
                     <Image
                       style={styles.fullscreenImage}
-                      source={{uri : `${serverAPIURL}/${image}`}}
+                      source={{ uri: image }}
                     />
                   </View>
                 ))}
