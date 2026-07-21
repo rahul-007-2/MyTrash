@@ -132,14 +132,12 @@ app.use(express.urlencoded({
   extended: true,
   limit: '10mb'
 }));
-// MongoDB connection
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB connected"))
   .catch(err => console.error(err));
 
-
-// User Schema
+//Schemas
 const UserSchema = new mongoose.Schema({
   name: String,
   number: String,
@@ -161,9 +159,6 @@ const UserSchema = new mongoose.Schema({
     required: [false]
   },
 });
-
-
-const User = mongoose.model('User', UserSchema);
 
 const itemSchema = new mongoose.Schema({
   name: String,
@@ -200,7 +195,6 @@ const messageSchema = new mongoose.Schema({
   }
 });
 
-// Define the schema for a chat
 const chatSchema = new mongoose.Schema({
   item: {
     type: itemSchema,
@@ -221,8 +215,6 @@ const buyerListSchema = new mongoose.Schema({
   buyer_email: [String],
 });
 
-///////////////////////////////////////////////
-
 const dealsSchema = new mongoose.Schema({
   email: {
     type: String,
@@ -242,17 +234,6 @@ const dealsSchema = new mongoose.Schema({
   }
 });
 
-const Dealdata = mongoose.model('Dealdata', dealsSchema);
-
-///////////////////////////////////////////////
-
-// Create the model
-const Chat = mongoose.model('Chat', chatSchema);
-const BuyerList = mongoose.model('BuyerList', buyerListSchema);
-
-
-const Item = mongoose.model('Item', itemSchema);
-
 const tokenSchema = new mongoose.Schema({
   email: {
     type: String,
@@ -269,26 +250,13 @@ const tokenSchema = new mongoose.Schema({
   },
 });
 
-// Create the model
+// Create the models
+const Dealdata = mongoose.model('Dealdata', dealsSchema);
+const Chat = mongoose.model('Chat', chatSchema);
+const BuyerList = mongoose.model('BuyerList', buyerListSchema);
+const User = mongoose.model('User', UserSchema);
+const Item = mongoose.model('Item', itemSchema);
 const Token = mongoose.model('Token', tokenSchema);
-
-
-//Previously used local storage:
-
-// const storage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     cb(null, 'uploads/'); // Destination folder for storing uploads
-//   },
-//   filename: (req, file, cb) => {
-//     cb(null, `${Date.now()}${file.originalname}`); // Unique filename
-//   },
-// });
-
-// Middleware to parse JSON bodies
-app.use(express.json());
-
-
-
 
 function haversineDistance(lat1, lon1, lat2, lon2) {
   // console.log(lat1, lon1, lat2, lon2)
@@ -309,9 +277,6 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
   return Math.round(distance); // Return distance rounded to the nearest integer
 }
 
-
-//server.js 
-// Register User
 app.post('/api/register', async (req, res) => {
   const {
     name,
@@ -433,7 +398,6 @@ app.post("/api/upload", upload.array("images", 8), async (req, res) => {
     });
   }
 });
-
 
 app.post(
   "/api/profilepic",
@@ -640,13 +604,9 @@ app.post('/api/updateuser', async (req, res) => {
   }
 });
 
-
-
-
 let defaultClient = SibApiV3Sdk.ApiClient.instance;
 let apiKey = defaultClient.authentications['api-key'];
 apiKey.apiKey = process.env.API_KEY;
-
 
 app.post('/api/login', async (req, res) => {
   try {
@@ -671,7 +631,6 @@ app.post('/api/login', async (req, res) => {
     res.status(500).send(err);
   }
 });
-
 
 app.post('/api/getuser', async (req, res) => {
 
@@ -909,8 +868,6 @@ app.post('/api/getfirstitems', async (req, res) => {
   }
 });
 
-
-
 app.post('/api/send-email', async (req, res) => {
 
   const {
@@ -1033,11 +990,7 @@ app.post('/api/send-email', async (req, res) => {
 
 });
 
-
-app.post(
-  "/api/imagemessage",
-  upload.single("image"),
-  async (req, res) => {
+app.post("/api/imagemessage",upload.single("image"),async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({
@@ -1184,38 +1137,6 @@ app.post(
   }
 );
 
-  // console.log(req.body);
-
-  try {
-    const updated_chat = await Chat.findOneAndUpdate({
-        item: parseditem,
-        buyer_email: buyer_email
-      }, //////////////CHAN
-      {
-        $push: {
-          messages: {
-            id: id,
-            sender_email: sender_email,
-            timestamp: timestamp,
-            type: type,
-            content: imageUrl
-          }
-        }
-      }
-    );
-  } catch (error) {
-    console.log(error);
-  } finally {
-    io.to(chatRoomId).emit('newMessage', {
-      chatRoomId
-    });
-    res.status(200).json({
-      message: 'sent'
-    });
-  }
-});
-
-
 app.post('/api/message', async (req, res) => {
 
   const {
@@ -1291,7 +1212,6 @@ app.post('/api/message', async (req, res) => {
     message: 'sent'
   });
 });
-
 
 app.post('/api/getbuyerlist', async (req, res) => {
   const {
@@ -1438,7 +1358,6 @@ app.post('/api/getchat', async (req, res) => {
   // res.status(200).json({ imageUrl });
 });
 
-
 app.post('/api/deleteitem', async (req, res) => {
   try {
     const {
@@ -1478,7 +1397,6 @@ app.post('/api/deleteitem', async (req, res) => {
   }
 
 });
-
 
 app.post('/api/itemsold', async (req, res) => {
   // console.log("itemsoldcalled");
@@ -1560,7 +1478,6 @@ app.post('/api/itemsold', async (req, res) => {
 
 });
 
-// Endpoint to register a new token for a user
 app.post('/register-token', async (req, res) => {
   const {
     token,
@@ -1593,7 +1510,6 @@ app.post('/register-token', async (req, res) => {
   }
 });
 
-
 app.post('/update-enabled', async (req, res) => {
   const {
     email,
@@ -1624,7 +1540,6 @@ app.post('/update-enabled', async (req, res) => {
     res.status(500).send('Error updating enabled status');
   }
 });
-
 
 app.post('/removetoken', async (req, res) => {
   const {
@@ -1667,8 +1582,6 @@ app.post('/removetoken', async (req, res) => {
   }
 });
 
-
-// Endpoint to send Expo notification
 app.post('/send-expo-notification', async (req, res) => {
   const {
     email,
@@ -1727,8 +1640,6 @@ app.post('/send-expo-notification', async (req, res) => {
   }
 });
 
-//getlistings api
-
 app.post('/api/getlistings', async (req, res) => {
 
   const {
@@ -1750,8 +1661,6 @@ app.post('/api/getlistings', async (req, res) => {
 
 });
 
-
-// get deals api
 app.post('/api/getdeals', async (req, res) => {
   try {
     const {
@@ -1783,9 +1692,6 @@ app.post('/api/getdeals', async (req, res) => {
   }
 
 });
-
-
-//helpnsupport api  
 
 app.post('/api/helpandsupport', async (req, res) => {
 
@@ -1884,8 +1790,6 @@ app.post('/api/helpandsupport', async (req, res) => {
 
 });
 
-
-
 app.post('/api/feedback', async (req, res) => {
 
   const {
@@ -1983,9 +1887,6 @@ app.post('/api/feedback', async (req, res) => {
 
 });
 
-
-
-
 io.on('connection', (socket) => {
   // console.log('A user connected');
 
@@ -2007,6 +1908,5 @@ io.on('connection', (socket) => {
     // console.log(`User left room: ${chatRoomId}`);
   });
 });
-
 
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
